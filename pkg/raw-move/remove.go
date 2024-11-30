@@ -27,7 +27,7 @@ func RemoveUnnecessaryRaws(srcDirPath string) error {
 	}
 	defer srcDir.Close()
 
-	src, err := rawDir.Readdir(-1)
+	src, err := srcDir.Readdir(-1)
 	if err != nil {
 		return fmt.Errorf("src dir read: %w", err)
 	}
@@ -45,11 +45,9 @@ func RemoveUnnecessaryRaws(srcDirPath string) error {
 		if _, ok := srcSet[strings.Split(raw.Name(), ".")[0]]; !ok {
 			filePath := path.Join(rawDirPath, raw.Name())
 
-			// if err := os.Remove(filePath); err != nil {
-			// 	return fmt.Errorf("can't remove %s: %w", filePath, err)
-			// }
-
-			fmt.Println(filePath)
+			if err := os.Remove(filePath); err != nil {
+				return fmt.Errorf("can't remove %s: %w", filePath, err)
+			}
 		}
 	}
 
