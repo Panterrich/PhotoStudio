@@ -3,7 +3,9 @@ package rawmove
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	log "github.com/rs/zerolog/log"
@@ -15,36 +17,35 @@ const (
 
 func isRawFile(fileName string) bool {
 	rawFileExtension := map[string]struct{}{
-		".cr2": {},
-		".nef": {},
+		".cr2": {}, // Canon
+		".nef": {}, // Nikon
+		".arw": {}, // Sony
 	}
 
 	fileName = strings.ToLower(fileName)
+	_, ok := rawFileExtension[path.Ext(fileName)]
 
-	for extension := range rawFileExtension {
-		if strings.HasSuffix(fileName, extension) {
-			return true
-		}
-	}
-
-	return false
+	return ok
 }
 
 func modifyFileName(fileName string, camera string) string {
-	s := strings.FieldsFunc(fileName, func(r rune) bool {
-		return r == '_' || r == ' ' || r == '(' || r == ')'
-	})
+	r := regexp.MustCompile(`.*(?P<index>\d\d\d\d)\s*(\((?P<version>\d+)\))?\.(?P<ext>\w+)`)
+	template := "${index}_${version}.${ext}"
 
-	if len(s) == 0 {
+	submatch := r.FindStringSubmatchIndex(fileName)
+	if submatch == nil {
 		return ""
 	}
 
-	s[0] = camera
+	result := []byte{}
+	result = r.ExpandString(result, template, fileName, submatch)
 
-	return strings.Join(s, "_")
+	index := strings.ReplaceAll(string(result), "_.", ".")
+
+	return strings.Join([]string{camera, index}, "_")
 }
 
-func moveFile(srcPath, dstDir string) error {
+func copyFile(srcPath, dstDir string) error {
 	var srcFileName, camera, dstPath string
 
 	srcFileName = filepath.Base(srcPath)
@@ -81,14 +82,14 @@ func moveFile(srcPath, dstDir string) error {
 	return nil
 }
 
-func WalkAndMove(srcDir, dstDir string) error {
+func WalkAndCopy(srcDir, dstDir string) error {
 	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("walk error: %w", err)
 		}
 
 		if !info.IsDir() {
-			if err := moveFile(path, dstDir); err != nil {
+			if err := copyFile(path, dstDir); err != nil {
 				return fmt.Errorf("copy error: %w", err)
 			}
 		}

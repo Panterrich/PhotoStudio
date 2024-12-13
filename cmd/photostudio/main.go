@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	log "github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -25,30 +26,30 @@ var (
 		Long:  "Server for storing metrics",
 	}
 
-	moveCommand = &cobra.Command{
-		Use:  "move",
-		RunE: move,
+	copyCommand = &cobra.Command{
+		Use:  "copy",
+		RunE: cmdCopy,
 	}
 
 	removeCommand = &cobra.Command{
 		Use:  "remove",
-		RunE: remove,
+		RunE: cmdRemove,
 	}
 )
 
 func init() {
-	moveCommand.PersistentFlags().StringVarP(&cfg.srcDir, "input", "i", "", "input dir for src")
-	moveCommand.PersistentFlags().StringVarP(&cfg.dstDir, "output", "o", "", "output dir for src and raw")
-	moveCommand.MarkPersistentFlagRequired("input")
-	moveCommand.MarkPersistentFlagRequired("output")
+	copyCommand.PersistentFlags().StringVarP(&cfg.srcDir, "input", "i", "", "input dir for src")
+	copyCommand.PersistentFlags().StringVarP(&cfg.dstDir, "output", "o", "", "output dir for src and raw")
+	copyCommand.MarkPersistentFlagRequired("input")
+	copyCommand.MarkPersistentFlagRequired("output")
 
 	removeCommand.PersistentFlags().StringVarP(&cfg.srcDir, "input", "i", "", "input dir for src")
 	removeCommand.MarkPersistentFlagRequired("input")
 
-	root.AddCommand(moveCommand, removeCommand)
+	root.AddCommand(copyCommand, removeCommand)
 }
 
-func move(_ *cobra.Command, _ []string) error {
+func cmdCopy(_ *cobra.Command, _ []string) error {
 	srcDir := cfg.srcDir
 	dstDir := cfg.dstDir
 
@@ -66,7 +67,17 @@ func move(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	if err := rawmove.WalkAndMove(srcDir, dstDir); err != nil {
+	srcDir, err := filepath.Abs(srcDir)
+	if err != nil {
+		log.Error().Msgf("Не удалось получить абсолютный путь: %v", err)
+	}
+
+	dstDir, err = filepath.Abs(dstDir)
+	if err != nil {
+		log.Error().Msgf("Не удалось получить абсолютный путь: %v", err)
+	}
+
+	if err = rawmove.WalkAndCopy(srcDir, dstDir); err != nil {
 		log.Error().Msgf("Ошибка при копировании: %v", err)
 	}
 
@@ -75,8 +86,13 @@ func move(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func remove(_ *cobra.Command, _ []string) error {
-	if err := rawmove.RemoveUnnecessaryRaws(cfg.srcDir); err != nil {
+func cmdRemove(_ *cobra.Command, _ []string) error {
+	srcDir, err := filepath.Abs(cfg.srcDir)
+	if err != nil {
+		log.Error().Msgf("Не удалось получить абсолютный путь: %v", err)
+	}
+
+	if err := rawmove.RemoveUnnecessaryRaws(srcDir); err != nil {
 		return fmt.Errorf("remove command: %w", err)
 	}
 
