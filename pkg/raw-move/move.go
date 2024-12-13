@@ -8,21 +8,22 @@ import (
 	log "github.com/rs/zerolog/log"
 )
 
-func copyFile(srcPath, dstDir string) error {
+func moveFile(srcPath string) error {
 	var srcFileName, camera, dstPath string
 
 	srcFileName = filepath.Base(srcPath)
-	camera = filepath.Base(dstDir)
+	camera = filepath.Base(filepath.Dir(srcPath))
+	fmt.Println(srcPath, srcFileName, camera)
 
 	srcFileName = modifyFileName(srcFileName, camera)
 	if srcFileName == "" {
-		return fmt.Errorf("empty filename: %s", srcFileName)
+		return fmt.Errorf("empty filename")
 	}
 
 	if isRawFile(srcFileName) {
-		dstPath = filepath.Join(dstDir, RawDir, srcFileName)
+		dstPath = filepath.Join(camera, RawDir, srcFileName)
 	} else {
-		dstPath = filepath.Join(dstDir, srcFileName)
+		dstPath = filepath.Join(camera, srcFileName)
 	}
 
 	if _, err := os.Stat(dstPath); !os.IsNotExist(err) {
@@ -30,14 +31,9 @@ func copyFile(srcPath, dstDir string) error {
 		return nil
 	}
 
-	input, err := os.ReadFile(srcPath)
+	err := os.Rename(srcFileName, dstPath)
 	if err != nil {
-		return fmt.Errorf("read file error: %s", srcPath)
-	}
-
-	err = os.WriteFile(dstPath, input, 0644)
-	if err != nil {
-		return fmt.Errorf("write file error: %s", dstPath)
+		return fmt.Errorf("rename file %s -> %s: %v", srcFileName, dstPath, err)
 	}
 
 	log.Printf("Скопирован файл: %s -> %s", srcPath, dstPath)
@@ -45,15 +41,15 @@ func copyFile(srcPath, dstDir string) error {
 	return nil
 }
 
-func WalkAndCopy(srcDir, dstDir string) error {
+func WalkAndMove(srcDir string) error {
 	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("walk error: %w", err)
 		}
 
 		if !info.IsDir() {
-			if err := copyFile(path, dstDir); err != nil {
-				return fmt.Errorf("copy error: %w", err)
+			if err := moveFile(path); err != nil {
+				return fmt.Errorf("move error: %w", err)
 			}
 		}
 
@@ -61,7 +57,7 @@ func WalkAndCopy(srcDir, dstDir string) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("walk and copy error: %w", err)
+		return fmt.Errorf("walk and move error: %w", err)
 	}
 
 	return nil
