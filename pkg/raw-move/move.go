@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 
 	log "github.com/rs/zerolog/log"
+
+	"github.com/Panterrich/PhotoStudio/pkg/image"
 )
 
 func moveFile(srcPath string) error {
@@ -20,7 +22,7 @@ func moveFile(srcPath string) error {
 		return fmt.Errorf("empty filename")
 	}
 
-	if isRawFile(srcFileName) {
+	if image.IsRaw(srcFileName) {
 		dstPath = filepath.Join(camera, RawDir, srcFileName)
 	} else {
 		dstPath = filepath.Join(camera, srcFileName)
@@ -33,7 +35,7 @@ func moveFile(srcPath string) error {
 
 	err := os.Rename(srcFileName, dstPath)
 	if err != nil {
-		return fmt.Errorf("rename file %s -> %s: %v", srcFileName, dstPath, err)
+		return fmt.Errorf("rename file %s -> %s: %w", srcFileName, dstPath, err)
 	}
 
 	log.Printf("Скопирован файл: %s -> %s", srcPath, dstPath)

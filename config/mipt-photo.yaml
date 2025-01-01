@@ -1,0 +1,11 @@
+cameras:
+  Nikon:
+    D850: "NIKON D850"
+    D800: "NIKON D800E"
+    D4: "NIKON D4"
+  Canon:
+    5DSR: "Canon EOS 5DS R"
+    1DX2: "Canon EOS-1D X Mark II"
+    5DM3: "Canon EOS 5D Mark III"
+  Sony:
+    A7R1: "ILCE-7R"

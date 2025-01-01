@@ -5,6 +5,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/Panterrich/PhotoStudio/pkg/image"
 )
 
 func RemoveUnnecessaryRaws(srcDirPath string) error {
@@ -38,7 +40,7 @@ func RemoveUnnecessaryRaws(srcDirPath string) error {
 	}
 
 	for _, raw := range raws {
-		if !isRawFile(raw.Name()) {
+		if !image.IsRaw(raw.Name()) {
 			continue
 		}
 

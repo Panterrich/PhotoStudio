@@ -1,7 +1,6 @@
 package rawmove
 
 import (
-	"path"
 	"regexp"
 	"strings"
 )
@@ -9,19 +8,6 @@ import (
 const (
 	RawDir = "RAW"
 )
-
-func isRawFile(fileName string) bool {
-	rawFileExtension := map[string]struct{}{
-		".cr2": {}, // Canon
-		".nef": {}, // Nikon
-		".arw": {}, // Sony
-	}
-
-	fileName = strings.ToLower(fileName)
-	_, ok := rawFileExtension[path.Ext(fileName)]
-
-	return ok
-}
 
 func modifyFileName(fileName string, camera string) string {
 	r := regexp.MustCompile(`.*(?P<index>\d\d\d\d)\s*(\((?P<version>\d+)\))?\.(?P<ext>\w+)`)
