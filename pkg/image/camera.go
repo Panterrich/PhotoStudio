@@ -19,11 +19,12 @@ const ModelTagID = 272
 var ErrNotFound = errors.New("camera model not found")
 
 func matchCamera(raw string, cameras Cameras) (string, error) {
-	if camera, ok := cameras[raw]; !ok {
+	camera, ok := cameras[raw]
+	if !ok {
 		return "", fmt.Errorf("%w: %s", ErrNotFound, raw)
-	} else {
-		return camera.Model, nil
 	}
+
+	return camera.Model, nil
 }
 
 func WhichCamera(path string, cameras Cameras) (string, error) {
@@ -43,7 +44,6 @@ func WhichCamera(path string, cameras Cameras) (string, error) {
 		tagId uint16,
 		_ /* tagType */ exif.TagType,
 		valueContext exif.ValueContext) (err error) {
-
 		if tagId != ModelTagID {
 			return nil
 		}

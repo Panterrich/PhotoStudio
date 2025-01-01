@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 
 	log "github.com/rs/zerolog/log"
+
+	"github.com/Panterrich/PhotoStudio/pkg/image"
 )
 
 func copyFile(srcPath, dstDir string) error {
@@ -19,7 +21,7 @@ func copyFile(srcPath, dstDir string) error {
 		return fmt.Errorf("empty filename: %s", srcFileName)
 	}
 
-	if isRawFile(srcFileName) {
+	if image.IsRaw(srcFileName) {
 		dstPath = filepath.Join(dstDir, RawDir, srcFileName)
 	} else {
 		dstPath = filepath.Join(dstDir, srcFileName)
