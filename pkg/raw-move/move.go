@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	log "github.com/rs/zerolog/log"
 
+	"github.com/Panterrich/PhotoStudio/pkg/collection"
 	"github.com/Panterrich/PhotoStudio/pkg/image"
+	"github.com/Panterrich/PhotoStudio/pkg/progressbar"
 )
 
 func moveFile(srcPath string) error {
@@ -43,24 +46,62 @@ func moveFile(srcPath string) error {
 	return nil
 }
 
-func WalkAndMove(srcDir string) error {
-	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("walk error: %w", err)
-		}
-
-		if !info.IsDir() {
-			if err := moveFile(path); err != nil {
-				return fmt.Errorf("move error: %w", err)
-			}
-		}
-
-		return nil
-	})
-
+func MoveImages(srcDir string, nWorkers int) error {
+	c, err := collection.NewCollection(srcDir, nWorkers)
 	if err != nil {
-		return fmt.Errorf("walk and move error: %w", err)
+		return fmt.Errorf("create collection for copying: %w", err)
 	}
 
-	return nil
+	jpegSize, rawSize := c.Size()
+	images := c.Images()
+
+	p, wg := progressbar.New(2)
+
+	jpegBar := progressbar.Add(p, jpegSize, "Moving JPEGs...")
+	rawBar := progressbar.Add(p, rawSize, "Moving RAWs... ")
+
+	result := make(chan error, 2)
+
+	go func() {
+		defer wg.Done()
+
+		for jpeg := range images.Jpegs {
+			start := time.Now()
+
+			if err := moveFile(jpeg); err != nil {
+				result <- fmt.Errorf("moving jpeg file error: %w", err)
+				return
+			}
+
+			jpegBar.IncrBy(1, time.Since(start))
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		for raw := range images.Raws {
+			start := time.Now()
+
+			if err := moveFile(raw); err != nil {
+				result <- fmt.Errorf("moving raw file error: %w", err)
+				return
+			}
+
+			rawBar.IncrBy(1, time.Since(start))
+		}
+	}()
+
+	p.Wait()
+
+	for {
+		select {
+		case err := <-result:
+			if err != nil {
+				return fmt.Errorf("invalid moving: %w", err)
+			}
+		default:
+			return nil
+		}
+	}
 }
