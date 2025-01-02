@@ -7,19 +7,22 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/rs/zerolog"
 	log "github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	rawmove "github.com/Panterrich/PhotoStudio/pkg/raw-move"
 )
 
-type Config struct {
+type Flags struct {
 	srcDir string
 	dstDir string
+
+	nWorkers int
 }
 
 var (
-	cfg Config
+	cfg Flags
 
 	root = &cobra.Command{
 		Use:   "photostudio",
@@ -46,9 +49,11 @@ var (
 func init() {
 	copyCommand.PersistentFlags().StringVarP(&cfg.srcDir, "input", "i", ".", "input dir for src")
 	copyCommand.PersistentFlags().StringVarP(&cfg.dstDir, "output", "o", "", "output dir for src and raw")
+	copyCommand.PersistentFlags().IntVarP(&cfg.nWorkers, "jobs", "j", 1, "nWorkers")
 	copyCommand.MarkPersistentFlagRequired("output")
 
 	moveCommand.PersistentFlags().StringVarP(&cfg.srcDir, "input", "i", ".", "input dir for src")
+	moveCommand.PersistentFlags().IntVarP(&cfg.nWorkers, "jobs", "j", 1, "nWorkers")
 
 	removeCommand.PersistentFlags().StringVarP(&cfg.srcDir, "input", "i", ".", "input dir for src")
 
@@ -83,7 +88,7 @@ func cmdCopy(_ *cobra.Command, _ []string) error {
 		log.Error().Msgf("Не удалось получить абсолютный путь: %v", err)
 	}
 
-	if err = rawmove.WalkAndCopy(srcDir, dstDir); err != nil {
+	if err = rawmove.CopyImages(srcDir, dstDir, cfg.nWorkers); err != nil {
 		log.Error().Msgf("Ошибка при копировании: %v", err)
 	}
 
@@ -108,7 +113,7 @@ func cmdMove(_ *cobra.Command, _ []string) error {
 		log.Error().Msgf("Не удалось получить абсолютный путь: %v", err)
 	}
 
-	if err = rawmove.WalkAndMove(srcDir); err != nil {
+	if err = rawmove.MoveImages(srcDir, cfg.nWorkers); err != nil {
 		log.Error().Msgf("Ошибка при перемещении: %v", err)
 	}
 
@@ -143,7 +148,17 @@ func cmdRemove(_ *cobra.Command, _ []string) error {
 }
 
 func main() {
+	file, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Error().Err(err).Send()
+		return
+	}
+
+	defer file.Close()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: file})
+
 	if err := root.Execute(); err != nil {
-		os.Exit(1)
+		return
 	}
 }
