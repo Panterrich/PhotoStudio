@@ -8,6 +8,7 @@ import (
 func IsRaw(filename string) bool {
 	rawFileExtension := map[string]struct{}{
 		".cr2": {}, // Canon
+		".cr3": {}, // Canon
 		".nef": {}, // Nikon
 		".arw": {}, // Sony
 	}
