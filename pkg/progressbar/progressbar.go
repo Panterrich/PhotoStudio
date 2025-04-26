@@ -12,7 +12,7 @@ func New(numBars int) (*mpb.Progress, *sync.WaitGroup) {
 	wg := &sync.WaitGroup{}
 	wg.Add(numBars)
 
-	p := mpb.New(mpb.WithWaitGroup(wg))
+	p := mpb.New(mpb.WithWaitGroup(wg), mpb.WithWidth(50))
 
 	return p, wg
 }
@@ -23,12 +23,14 @@ func Add(p *mpb.Progress, capacity int, name string) *mpb.Bar {
 		mpb.PrependDecorators(
 			decor.Name(name, decor.WC{W: len(name) + 1, C: decor.DidentRight}),
 			decor.CountersNoUnit("%3d / %3d", decor.WC{W: int(math.Trunc(math.Log10(float64(capacity))))*2 + 6, C: decor.DidentRight}),
-			decor.OnComplete(decor.Name(""), "done!"),
+			decor.OnComplete(decor.Name(""), " done!"),
 		),
 		mpb.AppendDecorators(
 			decor.OnComplete(decor.Percentage(decor.WC{W: 4}), ""),
 			decor.OnComplete(decor.Name(" | "), ""),
 			decor.OnComplete(decor.AverageSpeed(0, "%.2f it/s", decor.WC{W: 7, C: decor.DidentRight}), ""),
+			decor.OnComplete(decor.Name(" | ETA: "), ""),
+			decor.OnComplete(decor.EwmaETA(decor.ET_STYLE_HHMMSS, 30, decor.WC{W: 15, C: decor.DidentRight}), ""),
 		),
 	)
 }

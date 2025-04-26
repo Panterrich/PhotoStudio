@@ -45,7 +45,7 @@ func copyFile(srcPath, dstDir string) error {
 		return fmt.Errorf("write file error: %s", dstPath)
 	}
 
-	log.Printf("Скопирован файл: %s -> %s", srcPath, dstPath)
+	log.Info().Msgf("Скопирован файл: %s -> %s", srcPath, dstPath)
 
 	return nil
 }
@@ -79,6 +79,8 @@ func CopyImages(srcDir, dstDir string, nWorkers int) error {
 
 			jpegBar.IncrBy(1, time.Since(start))
 		}
+
+		jpegBar.SetTotal(int64(jpegSize), true)
 	}()
 
 	go func() {
@@ -94,6 +96,8 @@ func CopyImages(srcDir, dstDir string, nWorkers int) error {
 
 			rawBar.IncrBy(1, time.Since(start))
 		}
+
+		rawBar.SetTotal(int64(rawSize), true)
 	}()
 
 	p.Wait()
@@ -102,7 +106,7 @@ func CopyImages(srcDir, dstDir string, nWorkers int) error {
 		select {
 		case err := <-result:
 			if err != nil {
-				return fmt.Errorf("invalid moving: %w", err)
+				return fmt.Errorf("invalid copying: %w", err)
 			}
 		default:
 			return nil
