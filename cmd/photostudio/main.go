@@ -18,6 +18,8 @@ type Flags struct {
 	srcDir string
 	dstDir string
 
+	debug bool
+
 	nWorkers int
 }
 
@@ -25,9 +27,10 @@ var (
 	cfg Flags
 
 	root = &cobra.Command{
-		Use:   "photostudio",
-		Short: "Server for storing metrics",
-		Long:  "Server for storing metrics",
+		Use:              "photostudio",
+		Short:            "Script for images processing",
+		Long:             "Script for images processing",
+		PersistentPreRun: initCfg,
 	}
 
 	copyCommand = &cobra.Command{
@@ -36,8 +39,9 @@ var (
 	}
 
 	moveCommand = &cobra.Command{
-		Use:  "move",
-		RunE: cmdMove,
+		Use:    "move",
+		Hidden: true,
+		RunE:   cmdMove,
 	}
 
 	removeCommand = &cobra.Command{
@@ -58,6 +62,20 @@ func init() {
 	removeCommand.PersistentFlags().StringVarP(&cfg.srcDir, "input", "i", ".", "input dir for src")
 
 	root.AddCommand(copyCommand, moveCommand, removeCommand)
+
+	root.PersistentFlags().BoolVarP(&cfg.debug, "debug", "d", false, "enable debug logs")
+}
+
+func initCfg(_ *cobra.Command, _ []string) {
+	logger := log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
+	if cfg.debug {
+		logger = logger.Level(zerolog.DebugLevel)
+	} else {
+		logger = logger.Level(zerolog.ErrorLevel)
+	}
+
+	log.Logger = logger
 }
 
 func cmdCopy(_ *cobra.Command, _ []string) error {
@@ -148,16 +166,6 @@ func cmdRemove(_ *cobra.Command, _ []string) error {
 }
 
 func main() {
-	file, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Error().Err(err).Send()
-		return
-	}
-
-	defer file.Close()
-
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: file})
-
 	if err := root.Execute(); err != nil {
 		return
 	}

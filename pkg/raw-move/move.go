@@ -41,7 +41,7 @@ func moveFile(srcPath string) error {
 		return fmt.Errorf("rename file %s -> %s: %w", srcFileName, dstPath, err)
 	}
 
-	log.Printf("Скопирован файл: %s -> %s", srcPath, dstPath)
+	log.Printf("Перемещён файл: %s -> %s", srcPath, dstPath)
 
 	return nil
 }
@@ -75,6 +75,8 @@ func MoveImages(srcDir string, nWorkers int) error {
 
 			jpegBar.IncrBy(1, time.Since(start))
 		}
+
+		jpegBar.SetTotal(int64(jpegSize), true)
 	}()
 
 	go func() {
@@ -90,6 +92,8 @@ func MoveImages(srcDir string, nWorkers int) error {
 
 			rawBar.IncrBy(1, time.Since(start))
 		}
+
+		rawBar.SetTotal(int64(rawSize), true)
 	}()
 
 	p.Wait()
